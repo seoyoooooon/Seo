@@ -1,4 +1,1 @@
-yfineance
-plotly
-folium
-streamlit-folium
+pip install streamlit folium streamlit-folium
