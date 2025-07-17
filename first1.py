@@ -29,18 +29,28 @@ def load_and_clean_data():
     line_df = top5_df.set_index('행정구역').loc[:, list(rename_dict.values())].T
     line_df.index.name = '연령'
 
-    return df, top5_df, line_df
+    # 연령 인덱스를 정확히 정렬: 0세 ~ 99세 + 100세 이상
+    def age_sort_key(age_label):
+        if age_label == '100세 이상':
+            return 1000
+        else:
+            return int(age_label.replace('세', ''))
 
-# 데이터 로드
-df_original, df_top5, df_line = load_and_clean_data()
+    line_df_sorted = line_df.loc[sorted(line_df.index, key=age_sort_key)]
 
-# 앱 UI 구성
+    return df, top5_df, line_df_sorted
+
+# 데이터 불러오기
+df_original, df_top5, df_line_sorted = load_and_clean_data()
+
+# 앱 UI
 st.title("2025년 5월 기준 연령별 인구 현황")
 st.subheader("총인구수 기준 상위 5개 행정구역의 연령별 인구 변화")
-st.line_chart(df_line)
+st.line_chart(df_line_sorted)
 
 st.subheader("상위 5개 행정구역 데이터")
 st.dataframe(df_top5)
 
 st.subheader("전체 원본 데이터")
 st.dataframe(df_original)
+
