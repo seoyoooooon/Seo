@@ -1,0 +1,52 @@
+import streamlit as st
+import pandas as pd
+
+st.title("🚍 2025년 6월 교통카드 통계 분석")
+
+# 파일 업로드
+uploaded_file = st.file_uploader("📂 CSV 파일을 업로드하세요 (EUC-KR 인코딩)", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        # EUC-KR 인코딩으로 CSV 읽기
+        df = pd.read_csv(uploaded_file, encoding="euc-kr")
+    except Exception as e:
+        st.error(f"❌ 파일을 불러오는 중 오류가 발생했습니다: {e}")
+    else:
+        st.subheader("📋 원본 데이터 (상위 10행)")
+        st.dataframe(df.head(10))
+
+        # '노선번호'로 시작하는 열 찾기
+        route_columns = [col for col in df.columns if col.startswith("노선번호")]
+
+        if not route_columns:
+            st.warning("⚠️ '노선번호'로 시작하는 열이 없습니다.")
+        else:
+            # 열 이름 정제 (연령만 남기기)
+            new_column_names = ['행정구역', '승차등객수'] + [
+                col.replace("노선번호", "").replace("세", "").strip() + "세" for col in route_columns
+            ]
+            
+            # 필요한 컬럼만 선택
+            subset = df[["행정구역", "승차등객수"] + route_columns].copy()
+            subset.columns = new_column_names
+
+            # 승차등객수를 기준으로 상위 5개 행정구역 추출
+            subset["승차등객수"] = pd.to_numeric(subset["승차등객수"], errors="coerce")
+            top5 = subset.sort_values("승차등객수", ascending=False).head(5)
+
+            st.subheader("⭐ 상위 5개 행정구역 (승차등객수 기준)")
+            st.dataframe(top5)
+
+            # 시각화
+            st.subheader("📈 연령별 승차 승객수 (노선번호 기준 선 그래프)")
+            age_cols = top5.columns[2:]  # 연령별 열
+            for idx, row in top5.iterrows():
+                st.markdown(f"#### 📍 {row['행정구역']}")
+                age_data = pd.to_numeric(row[age_cols], errors="coerce")
+                age_df = pd.DataFrame(age_data.values, index=age_cols, columns=["승차승객수"])
+                st.line_chart(age_df)
+
+        st.success("✅ 분석이 완료되었습니다.")
+else:
+    st.info("먼저 CSV 파일을 업로드해주세요.")
